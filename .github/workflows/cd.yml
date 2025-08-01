@@ -24,15 +24,14 @@ jobs:
             echo "❌ GCP_SA_KEY secret is not set"
             exit 1
           else
-            echo "✅ GCP_SA_KEY secret is configured"
+            echo "✅ GCP_SA_KEY secret is configured (content hidden for security)"
           fi
           
           if [ -z "${{ secrets.GCP_PROJECT_ID }}" ]; then
             echo "❌ GCP_PROJECT_ID secret is not set"
             exit 1
           else
-            echo "✅ GCP_PROJECT_ID secret is configured"
-            echo "Project ID: ${{ secrets.GCP_PROJECT_ID }}"
+            echo "✅ GCP_PROJECT_ID secret is configured (content hidden for security)"
           fi
 
       - name: Authenticate to Google Cloud
@@ -48,13 +47,29 @@ jobs:
       - name: Verify GCP Authentication
         run: |
           echo "Testing GCP authentication..."
-          echo "Project ID: ${{ secrets.GCP_PROJECT_ID }}"
           echo "Checking if gcloud is authenticated..."
-          gcloud auth list
-          echo "Getting current project info..."
-          gcloud config get-value project
-          echo "Testing access to GCP services..."
-          gcloud projects describe ${{ secrets.GCP_PROJECT_ID }}
+          if gcloud auth list --filter=status:ACTIVE --format="value(account)" | grep -q "@"; then
+            echo "✅ Successfully authenticated with service account"
+          else
+            echo "❌ Authentication failed"
+            exit 1
+          fi
+          
+          echo "Testing access to current project..."
+          if gcloud config get-value project > /dev/null; then
+            echo "✅ Project access confirmed"
+          else
+            echo "❌ Cannot access project"
+            exit 1
+          fi
+          
+          echo "Testing GCP API access..."
+          if gcloud projects list --limit=1 > /dev/null 2>&1; then
+            echo "✅ GCP API access working"
+          else
+            echo "❌ GCP API access failed"
+            exit 1
+          fi
 
     #   - name: Install dependencies
     #     run: go mod download
