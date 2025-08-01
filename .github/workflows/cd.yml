@@ -17,6 +17,60 @@ jobs:
         with:
           go-version: 1.23.0
 
+      - name: Check GCP Secrets Setup
+        run: |
+          echo "Checking if GCP secrets are configured..."
+          if [ -z "${{ secrets.GCP_SA_KEY }}" ]; then
+            echo "❌ GCP_SA_KEY secret is not set"
+            exit 1
+          else
+            echo "✅ GCP_SA_KEY secret is configured (content hidden for security)"
+          fi
+          
+          if [ -z "${{ secrets.GCP_PROJECT_ID }}" ]; then
+            echo "❌ GCP_PROJECT_ID secret is not set"
+            exit 1
+          else
+            echo "✅ GCP_PROJECT_ID secret is configured (content hidden for security)"
+          fi
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+      - name: Verify GCP Authentication
+        run: |
+          echo "Testing GCP authentication..."
+          echo "Checking if gcloud is authenticated..."
+          if gcloud auth list --filter=status:ACTIVE --format="value(account)" | grep -q "@"; then
+            echo "✅ Successfully authenticated with service account"
+          else
+            echo "❌ Authentication failed"
+            exit 1
+          fi
+          
+          echo "Testing access to current project..."
+          if gcloud config get-value project > /dev/null; then
+            echo "✅ Project access confirmed"
+          else
+            echo "❌ Cannot access project"
+            exit 1
+          fi
+          
+          echo "Testing GCP API access..."
+          if gcloud projects list --limit=1 > /dev/null 2>&1; then
+            echo "✅ GCP API access working"
+          else
+            echo "❌ GCP API access failed"
+            exit 1
+          fi
+
     #   - name: Install dependencies
     #     run: go mod download
 
