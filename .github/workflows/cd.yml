@@ -17,14 +17,20 @@ jobs:
         with:
           go-version: 1.23.0
 
+    #   - name: Install dependencies
+    #     run: go mod download
+
+      - name: Build
+        run: scripts/buildprod.sh
+
       - name: Check GCP Secrets Setup
         run: |
           echo "Checking if GCP secrets are configured..."
-          if [ -z "${{ secrets.GCP_SA_KEY }}" ]; then
-            echo "❌ GCP_SA_KEY secret is not set"
+          if [ -z "${{ secrets.GCP_CREDENTIALS }}" ]; then
+            echo "❌ GCP_CREDENTIALS secret is not set"
             exit 1
           else
-            echo "✅ GCP_SA_KEY secret is configured (content hidden for security)"
+            echo "✅ GCP_CREDENTIALS secret is configured (content hidden for security)"
           fi
           
           if [ -z "${{ secrets.GCP_PROJECT_ID }}" ]; then
@@ -37,7 +43,7 @@ jobs:
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
 
       - name: Set up Google Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
@@ -62,17 +68,8 @@ jobs:
             echo "❌ Cannot access project"
             exit 1
           fi
-          
-          echo "Testing GCP API access..."
-          if gcloud projects list --limit=1 > /dev/null 2>&1; then
-            echo "✅ GCP API access working"
-          else
-            echo "❌ GCP API access failed"
-            exit 1
-          fi
 
-    #   - name: Install dependencies
-    #     run: go mod download
-
-      - name: Build
-        run: scripts/buildprod.sh 
+      - name: Build and Push Docker Image
+        run: |
+          echo "Building and pushing Docker image to Google Artifact Registry..."
+          gcloud builds submit --tag us-central1-docker.pkg.dev/notely-467610/notely-ar-repo/notely:latest . 
