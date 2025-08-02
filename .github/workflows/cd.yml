@@ -59,22 +59,8 @@ jobs:
           echo "Checking if gcloud is authenticated..."
           if gcloud auth list --filter=status:ACTIVE --format="value(account)" | grep -q "@"; then
             echo "✅ Successfully authenticated with service account"
-      - name: Verify GCP Authentication
-        run: |
-          echo "Testing GCP authentication..."
-          echo "Checking if gcloud is authenticated..."
-          if gcloud auth list --filter=status:ACTIVE --format="value(account)" | grep -q "@"; then
-            echo "✅ Successfully authenticated with service account"
           else
             echo "❌ Authentication failed"
-            exit 1
-          fi
-          
-          echo "Testing access to current project..."
-          if gcloud config get-value project > /dev/null; then
-            echo "✅ Project access confirmed"
-          else
-            echo "❌ Cannot access project"
             exit 1
           fi
 
